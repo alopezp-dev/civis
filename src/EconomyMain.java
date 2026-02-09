@@ -1,66 +1,388 @@
+
 import civisEconomy.*;
 import civisGeo.*;
 import civisCitizen.Persona;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+
 public class EconomyMain {
+    private static EconomyDBManager db;
+    private static Scanner scanner;
+    private static Map<String, EntidadBancaria> bancos;
+
     public static void main(String[] args) {
-        System.out.println("== Ejemplo terminal: módulo economy ==");
+        db = new EconomyDBManager();
+        scanner = new Scanner(System.in);
 
-        // 1) Crear entidad bancaria
-        EntidadBancaria banco = new EntidadBancaria("BancoDemo", "1234", "BDEMESMM", 0.0);
-        System.out.println("Banco creado: " + banco.getNombre() + " (codigo=" + banco.getCodigoBanco() + ")");
+        // Cargar datos al inicio
+        System.out.println("Cargando datos del sistema financiero...");
+        bancos = db.cargarDatos();
+        System.out.println("Datos cargados. Bancos registrados: " + bancos.size());
 
-        // 2) Crear objetos geográficos necesarios para la sucursal
-        Calle calle = new Calle(1, "C001", "Principal", "CL");
-        Localidad loc = new Localidad("VillaDemo", "10001", 5000);
-        Direccion dir = new Direccion(calle, 10, "A", loc.getCodigoPostal());
-        Edificio edificio = new Edificio(1, dir, "Comercial", 1995);
+        menuPrincipal();
+    }
 
-        // 3) Crear sucursal
-        Sucursal suc = new Sucursal(banco, loc, edificio);
-        banco.agregarSucursal(suc);
-        System.out.println("Sucursal creada en municipio: " + suc.getMunicipio().getName() + ", codigo sucursal=" + suc.getCodigoSucursal());
+    private static void menuPrincipal() {
+        boolean salir = false;
+        while (!salir) {
+            System.out.println("\n=== GESTIÓN ECONÓMICA (CivisEconomy) ===");
+            System.out.println("1. Gestión de Bancos");
+            System.out.println("2. Gestión de Sucursales");
+            System.out.println("3. Gestión de Clientes");
+            System.out.println("4. Gestión de Cuentas");
+            System.out.println("5. Salir");
+            System.out.print("\nSeleccione una opción: ");
 
-        // 4) Crear persona y cliente
-        Persona p = new Persona("Ana", "Gomez", "Perez", "12345678A", edificio, loc, null, null, loc.getCodigoPostal(), "600000000", "ana@example.com", "1980-01-01", "Ciudad", "Española", 'F', 1);
-        Cliente cliente = new Cliente(p, p.getEmail(), p.getPhoneNumber());
+            String opcion = scanner.nextLine();
 
-        // 5) Registrar cliente en el banco
-        boolean added = banco.agregarCliente(cliente);
-        System.out.println("Cliente agregado al banco: " + added + " (DNI=" + cliente.getUsuario().getDni() + ")");
+            switch (opcion) {
+                case "1":
+                    menuBancos();
+                    break;
+                case "2":
+                    menuSucursales();
+                    break;
+                case "3":
+                    menuClientes();
+                    break;
+                case "4":
+                    menuCuentas();
+                    break;
+                case "5":
+                    salir = true;
+                    System.out.println("Saliendo del sistema económico...");
+                    break;
+                default:
+                    System.out.println("❌ Opción no válida.");
+            }
+        }
+    }
 
-        // 6) Crear cuenta desde la sucursal y asociarla al banco
-        suc.crearCuentaBancaria(cliente, "EUR");
-        // Obtener la cuenta recién creada (la última)
-        CuentaBancaria cuenta = suc.getCuentasAsociadas().get(0);
-        banco.agregarCuenta(cuenta);
-        System.out.println("Cuenta creada IBAN=" + cuenta.getNumeroCuenta() + " divisa=" + cuenta.getDivisa());
+    // --- BANCOS ---
+    private static void menuBancos() {
+        System.out.println("\n--- GESTIÓN DE BANCOS ---");
+        System.out.println("1. Listar bancos");
+        System.out.println("2. Crear nuevo banco");
+        System.out.print("Opción: ");
+        String op = scanner.nextLine();
 
-        // 7) Hacer un abono y mostrar saldos
-        cuenta.setSaldo(1500.0);
-        System.out.println("Saldo en cuenta origen: " + cuenta.getSaldo());
+        switch (op) {
+            case "1":
+                listarBancos();
+                break;
+            case "2":
+                crearBanco();
+                break;
+        }
+    }
 
-        // 8) Crear otra cuenta destino
-        Persona p2 = new Persona("Luis", "Martinez", "Lopez", "87654321B", edificio, loc, null, null, loc.getCodigoPostal(), "611111111", "luis@example.com", "1975-05-05", "Ciudad", "Española", 'M', 1);
-        Cliente cliente2 = new Cliente(p2, p2.getEmail(), p2.getPhoneNumber());
-        banco.agregarCliente(cliente2);
-        CuentaBancaria cuenta2 = new CuentaBancaria(banco.getCodigoBanco(), suc.getCodigoSucursal(), "EUR");
-        cuenta2.setSaldo(200.0);
-        banco.agregarCuenta(cuenta2);
-        System.out.println("Cuenta destino creada IBAN=" + cuenta2.getNumeroCuenta() + " saldo=" + cuenta2.getSaldo());
+    private static void listarBancos() {
+        if (bancos.isEmpty()) {
+            System.out.println("No hay bancos registrados.");
+            return;
+        }
+        for (EntidadBancaria b : bancos.values()) {
+            System.out
+                    .println("- [" + b.getCodigoBanco() + "] " + b.getNombre() + " (SWIFT: " + b.getSwiftCode() + ")");
+        }
+    }
 
-        // 9) Realizar transferencia
-        double monto = 300.0;
-        boolean ok = cuenta.realizarTransferencia(cuenta2, monto);
-        System.out.println("Transferencia de " + monto + " realizada: " + ok);
-        System.out.println("Saldo origen post: " + cuenta.getSaldo());
-        System.out.println("Saldo destino post: " + cuenta2.getSaldo());
+    private static void crearBanco() {
+        System.out.print("Nombre del banco: ");
+        String nombre = scanner.nextLine();
+        System.out.print("Código (ID único): ");
+        String codigo = scanner.nextLine();
+        System.out.print("SWIFT: ");
+        String swift = scanner.nextLine();
 
-        // 10) Registrar transacción en libro mayor del banco
-        Transaccion t = new Transaccion(cuenta, cuenta2, monto);
-        banco.registrarTransaccion(t);
-        System.out.println("Transacción registrada id=" + t.getIdTransaccion());
+        if (bancos.containsKey(codigo)) {
+            System.out.println("Error: Ya existe un banco con ese código.");
+            return;
+        }
 
-        System.out.println("== Fin ejemplo economy ==");
+        EntidadBancaria b = new EntidadBancaria(nombre, codigo, swift, 0.0);
+        bancos.put(codigo, b);
+        db.guardarBanco(b);
+        System.out.println("Banco creado y guardado exitosamente.");
+    }
+
+    // --- SUCURSALES ---
+    private static void menuSucursales() {
+        System.out.println("\n--- GESTIÓN DE SUCURSALES ---");
+        System.out.println("1. Listar sucursales de un banco");
+        System.out.println("2. Crear nueva sucursal");
+        System.out.print("Opción: ");
+        String op = scanner.nextLine();
+
+        switch (op) {
+            case "1":
+                listarSucursales();
+                break;
+            case "2":
+                crearSucursal();
+                break;
+        }
+    }
+
+    private static void listarSucursales() {
+        EntidadBancaria b = seleccionarBanco();
+        if (b == null)
+            return;
+
+        List<Sucursal> sucursales = b.getSucursales();
+        if (sucursales.isEmpty()) {
+            System.out.println("Este banco no tiene sucursales.");
+        } else {
+            for (Sucursal s : sucursales) {
+                System.out.println("- [" + s.getCodigoSucursal() + "] " + s.getMunicipio().getName() + " ("
+                        + s.getMunicipio().getCodigoPostal() + ")");
+            }
+        }
+    }
+
+    private static void crearSucursal() {
+        EntidadBancaria b = seleccionarBanco();
+        if (b == null)
+            return;
+
+        System.out.println("Datos de localización:");
+        System.out.print("Nombre Municipio: ");
+        String mun = scanner.nextLine();
+        System.out.print("Código Postal: ");
+        String cp = scanner.nextLine();
+        System.out.print("Nombre de Calle: ");
+        String calle = scanner.nextLine();
+
+        // Crear objetos geo mínimos
+        Localidad loc = new Localidad(mun, cp, 0);
+        Calle c = new Calle(calle.hashCode(), "C-GEN", calle, "CL");
+        Direccion dir = new Direccion(c, 1, "", cp);
+        Edificio ed = new Edificio(1, dir);
+
+        Sucursal s = new Sucursal(b, loc, ed);
+        b.agregarSucursal(s);
+        db.guardarBanco(b);
+        System.out.println("Sucursal creada con código: " + s.getCodigoSucursal());
+    }
+
+    // --- CLIENTES ---
+    private static void menuClientes() {
+        System.out.println("\n--- GESTIÓN DE CLIENTES ---");
+        System.out.println("1. Listar clientes de una sucursal");
+        System.out.println("2. Crear nuevo cliente");
+        System.out.print("Opción: ");
+        String op = scanner.nextLine();
+        switch (op) {
+            case "1":
+                listarClientes();
+                break;
+            case "2":
+                crearCliente();
+                break;
+        }
+    }
+
+    private static void listarClientes() {
+        Sucursal s = seleccionarSucursal();
+        if (s == null)
+            return;
+
+        Map<String, Cliente> clientes = s.getClientesAsignados();
+        if (clientes.isEmpty()) {
+            System.out.println("No hay clientes en esta sucursal.");
+        } else {
+            for (Cliente c : clientes.values()) {
+                System.out.println(
+                        "- " + c.getDni() + ": " + c.getUsuario().getName() + " " + c.getUsuario().getFirstSurname());
+            }
+        }
+    }
+
+    private static void crearCliente() {
+        Sucursal s = seleccionarSucursal();
+        if (s == null)
+            return;
+
+        System.out.print("DNI: ");
+        String dni = scanner.nextLine();
+        System.out.print("Nombre: ");
+        String nombre = scanner.nextLine();
+        System.out.print("Apellido: ");
+        String apellido = scanner.nextLine();
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Teléfono: ");
+        String tel = scanner.nextLine();
+
+        Persona p = new Persona(nombre, apellido, "", dni, s.getEdificio(), s.getMunicipio(), null, null,
+                s.getMunicipio().getCodigoPostal(), tel, email, "1970-01-01", "", "", 'U', 0);
+        Cliente c = new Cliente(p, email, tel);
+
+        s.asignarCliente(c);
+        db.guardarBanco(s.getBanco());
+        System.out.println("Cliente registrado correctamente.");
+    }
+
+    // --- CUENTAS ---
+    private static void menuCuentas() {
+        System.out.println("\n--- GESTIÓN DE CUENTAS ---");
+        System.out.println("1. Listar cuentas de una sucursal");
+        System.out.println("2. Crear cuenta para un cliente");
+        System.out.println("3. Depositar dinero");
+        System.out.println("4. Transferir dinero");
+        System.out.print("Opción: ");
+        String op = scanner.nextLine();
+
+        switch (op) {
+            case "1":
+                listarCuentas();
+                break;
+            case "2":
+                crearCuenta();
+                break;
+            case "3":
+                depositar();
+                break;
+            case "4":
+                transferir();
+                break;
+        }
+    }
+
+    private static void listarCuentas() {
+        Sucursal s = seleccionarSucursal();
+        if (s == null)
+            return;
+
+        List<CuentaBancaria> cuentas = s.getCuentasAsociadas();
+        if (cuentas.isEmpty())
+            System.out.println("No hay cuentas registradas.");
+        for (CuentaBancaria c : cuentas) {
+            System.out.println("- " + c.getNumeroCuenta() + " [" + c.getDivisa() + "] Saldo: " + c.getSaldo());
+        }
+    }
+
+    private static void crearCuenta() {
+        Sucursal s = seleccionarSucursal();
+        if (s == null)
+            return;
+
+        System.out.print("Ingrese DNI del cliente titular: ");
+        String dni = scanner.nextLine();
+        Cliente c = s.getClientesAsignados().get(dni);
+
+        if (c == null) {
+            System.out.println("Cliente no encontrado en esta sucursal.");
+            return;
+        }
+
+        System.out.print("Divisa (EUR, USD...): ");
+        String divisa = scanner.nextLine();
+
+        s.crearCuentaBancaria(c, divisa);
+        db.guardarBanco(s.getBanco());
+
+        // Obtener la última creada
+        CuentaBancaria nueva = s.getCuentasAsociadas().get(s.getCuentasAsociadas().size() - 1);
+        System.out.println("Cuenta creada con IBAN: " + nueva.getNumeroCuenta());
+    }
+
+    private static void depositar() {
+        System.out.println("Nota: Para simplificar, buscamos la cuenta por IBAN en todo el sistema.");
+        System.out.print("IBAN cuenta destino: ");
+        String iban = scanner.nextLine();
+        System.out.print("Monto a depositar: ");
+        Double monto = Double.parseDouble(scanner.nextLine());
+
+        CuentaBancaria c = buscarCuentaGlobal(iban);
+        if (c != null) {
+            c.setSaldo(c.getSaldo() + monto);
+            // Guardar cambios. Hay que encontrar el banco dueño
+            EntidadBancaria b = encontrarBancoDeCuenta(c);
+            if (b != null)
+                db.guardarBanco(b);
+            System.out.println("Nuevo saldo: " + c.getSaldo());
+        } else {
+            System.out.println("Cuenta no encontrada.");
+        }
+    }
+
+    private static void transferir() {
+        System.out.print("IBAN Origen: ");
+        String ib1 = scanner.nextLine();
+        System.out.print("IBAN Destino: ");
+        String ib2 = scanner.nextLine();
+        System.out.print("Monto: ");
+        Double monto = Double.parseDouble(scanner.nextLine());
+
+        CuentaBancaria c1 = buscarCuentaGlobal(ib1);
+        CuentaBancaria c2 = buscarCuentaGlobal(ib2);
+
+        if (c1 == null || c2 == null) {
+            System.out.println("Alguna de las cuentas no existe.");
+            return;
+        }
+
+        if (c1.realizarTransferencia(c2, monto)) {
+            EntidadBancaria b1 = encontrarBancoDeCuenta(c1);
+            EntidadBancaria b2 = encontrarBancoDeCuenta(c2);
+            if (b1 != null) {
+                b1.registrarTransaccion(new Transaccion(c1, c2, monto));
+                db.guardarBanco(b1);
+            }
+            if (b2 != null && b2 != b1) {
+                db.guardarBanco(b2);
+            }
+            System.out.println("Transferencia realizada con éxito.");
+        } else {
+            System.out.println("Error: Saldo insuficiente o cuenta inactiva.");
+        }
+    }
+
+    // --- UTILIDADES ---
+
+    private static EntidadBancaria seleccionarBanco() {
+        System.out.print("Ingrese Código del Banco: ");
+        String cod = scanner.nextLine();
+        if (bancos.containsKey(cod))
+            return bancos.get(cod);
+        System.out.println("Banco no encontrado.");
+        return null;
+    }
+
+    private static Sucursal seleccionarSucursal() {
+        EntidadBancaria b = seleccionarBanco();
+        if (b == null)
+            return null;
+
+        System.out.print("Ingrese Código de Sucursal: ");
+        String codS = scanner.nextLine();
+
+        for (Sucursal s : b.getSucursales()) {
+            if (s.getCodigoSucursal().equals(codS))
+                return s;
+        }
+        System.out.println("Sucursal no encontrada en este banco.");
+        return null;
+    }
+
+    private static CuentaBancaria buscarCuentaGlobal(String iban) {
+        for (EntidadBancaria b : bancos.values()) {
+            try {
+                return b.getCuenta(iban);
+            } catch (Exception e) {
+            } // Ignorar si no está
+        }
+        return null;
+    }
+
+    private static EntidadBancaria encontrarBancoDeCuenta(CuentaBancaria c) {
+        for (EntidadBancaria b : bancos.values()) {
+            if (b.getCuentas().containsKey(c.getNumeroCuenta()))
+                return b;
+        }
+        return null;
     }
 }

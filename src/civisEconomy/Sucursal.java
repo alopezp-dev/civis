@@ -2,7 +2,7 @@ package civisEconomy;
 
 import civisGeo.Localidad;
 
-import civisGeo.Edificio; 
+import civisGeo.Edificio;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -31,16 +31,16 @@ public class Sucursal {
     private String generarCodigoSucursal() {
         // 1. Obtenemos el prefijo de la provincia (ej. "10" para Cáceres)
         String prefijoProvincia = municipio.getCodigoPostal().substring(0, 2);
-        
+
         // 2. Contamos cuántas sucursales tiene ya el banco en esa provincia
         // Accedemos a la lista global del banco para que el número sea correlativo
         long correlativo = banco.getSucursales().stream()
-            .filter(s -> s.getMunicipio().getCodigoPostal().startsWith(prefijoProvincia))
-            .count() + 1;
+                .filter(s -> s.getMunicipio().getCodigoPostal().startsWith(prefijoProvincia))
+                .count() + 1;
 
         // 3. Formateamos el correlativo a 2 dígitos (ej. 1 -> "01")
         String sufijo = String.format("%02d", correlativo);
-        
+
         // Resultado: "10" + "01" = "1001"
         return prefijoProvincia + sufijo;
     }
@@ -87,6 +87,7 @@ public class Sucursal {
         CuentaBancaria nuevaCuenta = new CuentaBancaria(banco.getCodigoBanco(), this.codigoSucursal, divisa);
         cuentasAsociadas.add(nuevaCuenta);
         cliente.agregarCuenta(nuevaCuenta);
+        banco.agregarCuenta(nuevaCuenta);
     }
 
 }
