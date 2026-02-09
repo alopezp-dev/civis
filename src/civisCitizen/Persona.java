@@ -1,11 +1,11 @@
-package CivisCitizen;
+package civisCitizen;
 
 import civisGeo.Edificio;
 import civisGeo.Localidad;
 import civisGeo.Provincia;
 import civisGeo.Pais;
 
-public class Person 
+public class Persona 
 {
     private String name;
     private String firstSurname;
@@ -24,7 +24,7 @@ public class Person
     private Character gender;
     private Integer maritalStatus;
 
-    public Person(String name, String firstSurname, String secondSurname, String dni, Edificio address, 
+    public Persona(String name, String firstSurname, String secondSurname, String dni, Edificio address, 
         Localidad city, Provincia province, Pais country, String postalCode, String phoneNumber, 
         String email, String dateOfBirth, String placeOfBirth, String nationality, Character gender, 
         Integer maritalStatus)

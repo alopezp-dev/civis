@@ -55,6 +55,16 @@ public class GuiMain extends JFrame {
         // Tab 4: Admin
         tabbedPane.addTab("Admin", createAdminPanel());
 
+        // Tab 5: Economy module
+        try {
+            tabbedPane.addTab("Economy", new EconomyPanel());
+        } catch (Throwable t) {
+            // If economy module missing or fails, show placeholder
+            JPanel p = new JPanel(new BorderLayout());
+            p.add(new JLabel("Economy module unavailable"), BorderLayout.CENTER);
+            tabbedPane.addTab("Economy", p);
+        }
+
         // Initial Data Load
         refreshStats();
         loadPaises();

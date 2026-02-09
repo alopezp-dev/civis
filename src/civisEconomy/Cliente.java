@@ -1,21 +1,20 @@
 package civisEconomy;
 
-import CivisCitizen.Persona;
+import civisCitizen.Persona;
+import java.util.HashMap;
+import java.util.Map;
 
-public class Cliente extends Persona {
-    private String idCliente; // DNI o pasaporte
+public class Cliente {
+    private Persona usuario;
     private String email;
     private String telefono;
+    private Map<String, CuentaBancaria> cuentas; // Cuentas asociadas al cliente, clave: número de cuenta
 
-    public Cliente(String nombre, String apellido, String idCliente, String email, String telefono) {
-        super(nombre, apellido);
-        this.idCliente = idCliente;
+    public Cliente(Persona usuario, String email, String telefono) {
+        this.usuario = usuario;
         this.email = email;
         this.telefono = telefono;
-    }
-
-    public String getIdCliente() {
-        return idCliente;
+        this.cuentas = new HashMap<>();
     }
 
     public String getEmail() {
@@ -24,5 +23,21 @@ public class Cliente extends Persona {
 
     public String getTelefono() {
         return telefono;
+    }
+
+    public Persona getUsuario() {
+        return usuario;
+    }
+
+    public String getDni() {
+        return usuario.getDni();
+    }
+
+    public Map<String, CuentaBancaria> getCuentas() {
+        return cuentas;
+    }
+
+    public void agregarCuenta(CuentaBancaria cuenta) {
+        cuentas.put(cuenta.getNumeroCuenta(), cuenta);
     }
 }
